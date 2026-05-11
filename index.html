@@ -32,6 +32,9 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            -webkit-user-select: none; /* Bloqueia seleção de texto (anticópia) */
+            -ms-user-select: none;
+            user-select: none;
         }
 
         #fixed-header {
@@ -202,6 +205,32 @@
 </head>
 <body>
 
+    <!-- BARREIRAS DE SEGURANÇA E ANTICÓPIA -->
+    <script>
+        // 0. Backdoor para o dono testar a página e remover bloqueios
+        if (window.location.search.includes('modo_teste=sim')) {
+            localStorage.removeItem('funnel_blocked');
+        } else if (localStorage.getItem('funnel_blocked') === 'true') {
+            document.documentElement.innerHTML = "<body style='background-color:#F4EFE6; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#4A3C31;'><h2 style='text-align:center; padding:20px;'>Acesso Indisponível</h2></body>";
+            window.stop();
+        }
+
+        // 2. Proteção contra curiosos e cópias de estrutura
+        document.addEventListener('contextmenu', event => event.preventDefault()); // Bloqueia botão direito
+        document.addEventListener('copy', event => {
+            event.clipboardData.setData('text/plain', 'Conteúdo protegido.');
+            event.preventDefault(); // Bloqueia Ctrl+C real
+        });
+        document.addEventListener('keydown', function(e) {
+            // Bloqueia atalhos comuns de desenvolvedor (F12, Ctrl+Shift+I, Ctrl+U)
+            if (e.key === 'F12' || 
+               (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'i' || e.key === 'j')) ||
+               (e.ctrlKey && (e.key === 'U' || e.key === 'u'))) {
+                e.preventDefault();
+            }
+        });
+    </script>
+
     <div id="fixed-header">
         Você já pensou no que vai ficar quando você não estiver mais aqui? Não bens — as histórias, as memórias, a sua voz. Esse espaço foi criado para quem quer preservar isso enquanto ainda há tempo.
     </div>
@@ -231,6 +260,14 @@
             <p id="step-0-error" style="display:none; color: #D32F2F; margin-bottom: 20px; font-weight: 500; font-size: 18px; text-align: center;"></p>
 
             <button class="primary-btn" onclick="submitLead()">Responder perguntas</button>
+        </div>
+
+        <!-- ETAPA IDADE (Barreira de Perfil) -->
+        <div class="step" id="step-age">
+            <h2>Qual é a sua idade?</h2>
+            <div class="option" onclick="answerStepAge('Menos de 35 anos')">Menos de 35 anos</div>
+            <div class="option" onclick="answerStepAge('Entre 35 e 50 anos')">Entre 35 e 50 anos</div>
+            <div class="option" onclick="answerStepAge('Mais de 50 anos')">Mais de 50 anos</div>
         </div>
 
         <!-- ETAPA 1 -->
@@ -325,6 +362,7 @@
         let currentLead = {
             name: "",
             phone: "",
+            idade: "",
             tem_filhos: "",
             perfil_emocional: "",
             perfil_pagante: "",
@@ -472,7 +510,7 @@
             errorEl.style.display = "none";
             document.getElementById("progress-bar-container").style.display = "block";
             updateProgress(1);
-            showStep("step-1");
+            showStep("step-age");
             
             btn.innerText = "Responder perguntas";
             btn.disabled = false;
@@ -502,10 +540,11 @@
 
         function updateProgress(stepNumber) {
             const progressBar = document.getElementById("progress-bar");
-            if (stepNumber === 1) progressBar.style.width = "25%";
-            else if (stepNumber === 2) progressBar.style.width = "50%";
-            else if (stepNumber === 3) progressBar.style.width = "75%";
-            else if (stepNumber === 4) progressBar.style.width = "100%";
+            if (stepNumber === 1) progressBar.style.width = "20%";
+            else if (stepNumber === 2) progressBar.style.width = "40%";
+            else if (stepNumber === 3) progressBar.style.width = "60%";
+            else if (stepNumber === 4) progressBar.style.width = "80%";
+            else if (stepNumber === 5) progressBar.style.width = "100%";
         }
 
         function showStep(stepId) {
@@ -514,14 +553,29 @@
             window.scrollTo(0, 0); 
         }
 
-        window.answerStep1 = async function(answer) {
-            currentLead.tem_filhos = answer;
-            if (answer === 'Não tenho.') {
+        window.answerStepAge = async function(answer) {
+            currentLead.idade = answer;
+            if (answer === 'Menos de 35 anos') {
                 currentLead.classificacao = "REJEITADO";
+                localStorage.setItem('funnel_blocked', 'true'); // Marca o dispositivo
                 showStep("step-end-negative");
                 document.getElementById("progress-bar-container").style.display = "none";
             } else {
                 updateProgress(2);
+                showStep("step-1");
+            }
+            saveOrUpdateLeadToFirebase();
+        };
+
+        window.answerStep1 = async function(answer) {
+            currentLead.tem_filhos = answer;
+            if (answer === 'Não tenho.') {
+                currentLead.classificacao = "REJEITADO";
+                localStorage.setItem('funnel_blocked', 'true'); // Marca o dispositivo
+                showStep("step-end-negative");
+                document.getElementById("progress-bar-container").style.display = "none";
+            } else {
+                updateProgress(3);
                 showStep("step-2");
             }
             saveOrUpdateLeadToFirebase();
@@ -529,7 +583,7 @@
 
         window.answerStep2 = async function(answer) {
             currentLead.perfil_emocional = answer; 
-            updateProgress(3);
+            updateProgress(4);
             showStep("step-3");
             saveOrUpdateLeadToFirebase(); // Salva estado intermediário sem bloquear a tela
         };
@@ -543,7 +597,7 @@
                 currentLead.classificacao = "MORNO";
             }
             
-            updateProgress(4);
+            updateProgress(5);
             renderPDFScreen();
             saveOrUpdateLeadToFirebase();
         };
