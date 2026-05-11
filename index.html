@@ -320,7 +320,7 @@
          * ===================================================================== */
         const LINK_GRUPO_WHATSAPP = "https://chat.whatsapp.com/CcZoBQVULEvCbb7ljufVE2";
         const LINK_WHATSAPP_PESSOAL = "https://wa.me/5531999990762";
-        const PDF_URL = "https://drive.google.com/uc?export=download&id=1BPHkWv1_1mTTEfJ2Z3CwCffp1wrqC6dd";
+        const PDF_URL = "https://drive.google.com/uc?export=download&id=1Ui8ZMqqwMS_Vk8sC4SiPIlJ4UuEIlgZ1";
         
         let currentLead = {
             name: "",
@@ -363,10 +363,13 @@
                 const q = query(collection(db, "leads"), where("phone", "==", rawNumber));
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
-                    // Existe! Vamos atualizar o contador de duplicatas no primeiro documento encontrado
                     const existingDoc = querySnapshot.docs[0];
                     const data = existingDoc.data();
                     const newAttempts = (data.duplicated_attempts || 0) + 1;
+                    
+                    // Guarda o ID para sobrescrever o mesmo lead, se for aprovado no bypass de teste
+                    currentDocId = existingDoc.id;
+                    
                     await updateDoc(doc(db, "leads", existingDoc.id), {
                         duplicated_attempts: newAttempts
                     });
