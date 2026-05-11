@@ -110,12 +110,14 @@
                     <th>Data/Hora</th>
                     <th>Nome</th>
                     <th>WhatsApp</th>
+                    <th>Tem Filhos?</th>
                     <th>Perfil Emocional</th>
                     <th>Perfil Pagante</th>
                     <th>Classificação</th>
                     <th>Baixou PDF?</th>
                     <th>Clicou Grupo?</th>
                     <th>Acessos Duplos</th>
+                    <th>Ações</th>
                 </tr>
             </thead>
             <tbody id="tabela-leads">
@@ -127,7 +129,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, orderBy, query, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     /* =====================================================================
      * CONFIGURAÇÃO DO FIREBASE (A MESMA QUE VOCÊ COLOCOU NO INDEX.HTML)
@@ -190,18 +192,21 @@
                     dataFormatada = dateObj.toLocaleDateString("pt-BR") + " " + dateObj.toLocaleTimeString("pt-BR", {hour: '2-digit', minute:'2-digit'});
                 }
 
-                const classeBagde = lead.classificacao === "QUENTE" ? "badge quente" : (lead.classificacao === "MORNO" ? "badge morno" : "");
+                const classeBagde = lead.classificacao === "QUENTE" ? "badge quente" : (lead.classificacao === "MORNO" ? "badge morno" : (lead.classificacao === "REJEITADO" ? "badge" : ""));
+                const badgeStyle = lead.classificacao === "REJEITADO" ? "background-color: #F8D7DA; color: #721C24;" : "";
 
                 tr.innerHTML = `
                     <td>${dataFormatada}</td>
                     <td><strong>${lead.name || '-'}</strong></td>
                     <td>${lead.phone || '-'}</td>
+                    <td>${lead.tem_filhos || '-'}</td>
                     <td>${lead.perfil_emocional || '-'}</td>
                     <td>${lead.perfil_pagante || '-'}</td>
-                    <td><span class="${classeBagde}">${lead.classificacao || '-'}</span></td>
+                    <td><span class="${classeBagde}" style="${badgeStyle}">${lead.classificacao || '-'}</span></td>
                     <td>${lead.pdf_downloaded ? '✅ Sim' : '❌ Não'}</td>
                     <td>${lead.group_clicked ? '✅ Sim' : '❌ Não'}</td>
                     <td style="text-align:center;">${lead.duplicated_attempts || 0}</td>
+                    <td><button class="btn btn-danger" style="padding: 5px 10px; font-size: 13px;" onclick="liberarNumero('${lead.id}', '${lead.name || 'Lead'}')">Liberar</button></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -215,6 +220,19 @@
         carregarLeadsFirebase();
     };
 
+    window.liberarNumero = async function(id, name) {
+        if (confirm(`Tem certeza que deseja liberar o número de ${name}?\nIsso vai apagá-lo do banco de dados e permitir que ele teste o funil novamente.`)) {
+            try {
+                await deleteDoc(doc(db, "leads", id));
+                alert("Número liberado com sucesso!");
+                carregarLeadsFirebase();
+            } catch (error) {
+                console.error("Erro ao deletar documento:", error);
+                alert("Erro ao liberar número. Veja o console.");
+            }
+        }
+    };
+
     window.exportarCSV = function() {
         if (leadsData.length === 0) {
             alert("Nenhum dado para exportar.");
@@ -222,7 +240,7 @@
         }
 
         let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
-        csvContent += "Data/Hora;Nome;WhatsApp;Perfil Emocional;Perfil Pagante;Classificacao;Baixou PDF;Clicou no Grupo;Tentativas Duplicadas\n";
+        csvContent += "Data/Hora;Nome;WhatsApp;Tem Filhos?;Perfil Emocional;Perfil Pagante;Classificacao;Baixou PDF;Clicou no Grupo;Tentativas Duplicadas\n";
 
         leadsData.forEach(lead => {
             let dataFormatada = lead.timestamp ? new Date(lead.timestamp).toLocaleString("pt-BR") : "";
@@ -231,6 +249,7 @@
                 dataFormatada,
                 lead.name || "",
                 lead.phone || "",
+                lead.tem_filhos || "",
                 lead.perfil_emocional || "",
                 lead.perfil_pagante || "",
                 lead.classificacao || "",
