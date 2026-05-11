@@ -278,10 +278,10 @@
 
         <!-- ETAPA 5: CONVITE DO GRUPO (Com copy baseada em senso de perda) -->
         <div class="step" id="step-group">
-            <p class="final-message message-left">O seu guia já foi disponibilizado. <strong>Mas preciso ser muito honesto com você:</strong></p>
-            <p class="final-message message-left">Apenas guardar um material no celular não salva memórias. O tempo não perdoa, e a cada dia que passa, detalhes preciosos das nossas vidas e das histórias de quem amamos vão se apagando.</p>
-            <p class="final-message message-left">Se você deixar para depois, o risco é real: fotos se estragam, vozes são esquecidas e histórias inteiras da sua família podem desaparecer para sempre, sem deixar absolutamente nada para seus filhos e netos.</p>
-            <p class="final-message message-left">Para garantir que você não perca nada disso, criei um grupo fechado no WhatsApp. Lá dentro, vou te ajudar pessoalmente toda semana a preservar a sua história enquanto ainda há tempo.</p>
+            <h2 style="font-size: 24px; color: var(--text-brown); margin-bottom: 20px; text-align: left;">O seu guia já foi disponibilizado. <strong style="color: #D32F2F;">Mas preciso ser muito honesto com você:</strong></h2>
+            <p class="final-message message-left">Guardar um material no celular não garante que suas memórias sejam preservadas. O tempo apaga os detalhes, as fotos se perdem e histórias inteiras da sua família podem desaparecer.</p>
+            <p class="final-message message-left"><strong>Não deixe isso acontecer.</strong></p>
+            <p class="final-message message-left">Para garantir que você não perca nada disso, criei um grupo fechado no WhatsApp. Lá, vou te ajudar pessoalmente a proteger a história da sua família enquanto ainda há tempo.</p>
             
             <button class="primary-btn" style="margin-top: 30px;" onclick="openWhatsApp()">Entrar no grupo e proteger minha história</button>
             <p class="small-text">O grupo é seguro, respeitoso e gratuito.</p>
@@ -325,6 +325,7 @@
         let currentLead = {
             name: "",
             phone: "",
+            tem_filhos: "",
             perfil_emocional: "",
             perfil_pagante: "",
             classificacao: "",
@@ -434,21 +435,17 @@
             // Timeout para evitar que a tela trave se o Firebase não responder (ex: em file:///)
             const timeout = (ms) => new Promise(resolve => setTimeout(() => resolve('timeout'), ms));
 
-            const numerosTeste = ["31999990762", "38998636150"];
             let isDuplicated = false;
-            
-            if (!numerosTeste.includes(rawNumber)) {
-                if (db) {
-                    try {
-                        const result = await Promise.race([checkDuplicatedAttemptFirebase(rawNumber), timeout(3000)]);
-                        if (result === 'timeout') {
-                            console.warn("Firebase demorou para responder. Continuando o fluxo...");
-                        } else {
-                            isDuplicated = result;
-                        }
-                    } catch(e) {
-                        console.error(e);
+            if (db) {
+                try {
+                    const result = await Promise.race([checkDuplicatedAttemptFirebase(rawNumber), timeout(3000)]);
+                    if (result === 'timeout') {
+                        console.warn("Firebase demorou para responder. Continuando o fluxo...");
+                    } else {
+                        isDuplicated = result;
                     }
+                } catch(e) {
+                    console.error(e);
                 }
             }
 
@@ -515,13 +512,16 @@
         }
 
         window.answerStep1 = async function(answer) {
+            currentLead.tem_filhos = answer;
             if (answer === 'Não tenho.') {
+                currentLead.classificacao = "REJEITADO";
                 showStep("step-end-negative");
                 document.getElementById("progress-bar-container").style.display = "none";
             } else {
                 updateProgress(2);
                 showStep("step-2");
             }
+            saveOrUpdateLeadToFirebase();
         };
 
         window.answerStep2 = async function(answer) {
@@ -585,6 +585,7 @@
             forceDownload(PDF_URL);
             currentLead.pdf_downloaded = true;
             saveOrUpdateLeadToFirebase();
+            document.getElementById("fixed-header").style.display = "none";
             showStep("step-group");
         };
 
