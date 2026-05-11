@@ -230,7 +230,7 @@
 
             <p id="step-0-error" style="display:none; color: #D32F2F; margin-bottom: 20px; font-weight: 500; font-size: 18px; text-align: center;"></p>
 
-            <button class="primary-btn" onclick="submitLead()">Acessar espaço</button>
+            <button class="primary-btn" onclick="submitLead()">Responder perguntas</button>
         </div>
 
         <!-- ETAPA 1 -->
@@ -431,12 +431,31 @@
             btn.innerText = "Acessando...";
             btn.disabled = true;
 
-            // Checa duplicidade no Firebase
-            const isDuplicated = await checkDuplicatedAttemptFirebase(rawNumber);
+            // Timeout para evitar que a tela trave se o Firebase não responder (ex: em file:///)
+            const timeout = (ms) => new Promise(resolve => setTimeout(() => resolve('timeout'), ms));
+
+            const numerosTeste = ["31999990762", "38998636150"];
+            let isDuplicated = false;
+            
+            if (!numerosTeste.includes(rawNumber)) {
+                if (db) {
+                    try {
+                        const result = await Promise.race([checkDuplicatedAttemptFirebase(rawNumber), timeout(3000)]);
+                        if (result === 'timeout') {
+                            console.warn("Firebase demorou para responder. Continuando o fluxo...");
+                        } else {
+                            isDuplicated = result;
+                        }
+                    } catch(e) {
+                        console.error(e);
+                    }
+                }
+            }
+
             if (isDuplicated) {
                 errorEl.innerText = "Este número já recebeu o material. Uma tentativa só é permitida por número.";
                 errorEl.style.display = "block";
-                btn.innerText = "Acessar espaço";
+                btn.innerText = "Responder perguntas";
                 btn.disabled = false;
                 return;
             }
@@ -446,14 +465,16 @@
             currentLead.phone = rawNumber;
             currentLead.timestamp = new Date().toISOString();
             
-            await saveOrUpdateLeadToFirebase();
+            if (db) {
+                Promise.race([saveOrUpdateLeadToFirebase(), timeout(3000)]).catch(e => console.error(e));
+            }
             
             errorEl.style.display = "none";
             document.getElementById("progress-bar-container").style.display = "block";
             updateProgress(1);
             showStep("step-1");
             
-            btn.innerText = "Acessar espaço";
+            btn.innerText = "Responder perguntas";
             btn.disabled = false;
         };
 
