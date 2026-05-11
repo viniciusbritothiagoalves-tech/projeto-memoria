@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espaço de Acolhimento</title>
+    <style>
+        /* =====================================================================
+         * ESTILOS - DESIGN MINIMALISTA E RESPONSIVO
+         * Fundo bege claro, sem animações, sem banco de imagens.
+         * Paleta: bege, marrom claro, branco.
+         * ===================================================================== */
+        
+        :root {
+            --bg-beige: #F4EFE6;
+            --text-brown: #4A3C31;
+            --light-brown: #A88F78;
+            --light-brown-active: #967E67;
+            --white: #FFFFFF;
+            --border-color: #E2D7C8;
+        }
+
+        body {
+            background-color: var(--bg-beige);
+            color: var(--text-brown);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 19px;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #fixed-header {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px 20px 10px 20px;
+            font-size: 18px;
+            font-style: italic;
+            text-align: center;
+            box-sizing: border-box;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-beige);
+            z-index: 10;
+        }
+
+        #progress-bar-container {
+            width: 100%;
+            max-width: 600px;
+            height: 6px;
+            background-color: #E6DFD3;
+            margin: 10px 0 25px 0;
+            border-radius: 3px;
+            overflow: hidden;
+            padding: 0 20px;
+            box-sizing: border-box;
+            background-clip: content-box;
+            display: none; /* Só aparece a partir da primeira pergunta */
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--light-brown);
+        }
+
+        #main-content {
+            width: 100%;
+            max-width: 600px;
+            padding: 0 20px 40px 20px;
+            box-sizing: border-box;
+            flex: 1;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        h2 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 25px;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        /* Inputs para Captura de Lead */
+        .input-field {
+            width: 100%;
+            padding: 18px 20px;
+            font-size: 19px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--white);
+            color: var(--text-brown);
+            box-sizing: border-box;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--light-brown);
+        }
+
+        .input-label {
+            display: block; 
+            font-weight: 600; 
+            margin-bottom: 8px;
+            text-align: left;
+            font-size: 19px;
+        }
+
+        .option {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            margin-bottom: 15px;
+            background-color: var(--white);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 19px;
+            text-align: left;
+            color: var(--text-brown);
+            box-sizing: border-box;
+        }
+
+        .option:active {
+            background-color: #F8F4EC;
+            border-color: var(--light-brown);
+        }
+
+        .primary-btn {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            background-color: var(--light-brown);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-size: 21px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        .primary-btn:active {
+            background-color: var(--light-brown-active);
+        }
+
+        .final-message {
+            font-size: 21px;
+            line-height: 1.6;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .message-left {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .pdf-text {
+            font-size: 19px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .pdf-title {
+            font-size: 21px;
+            font-weight: 600;
+            color: var(--text-brown);
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .small-text {
+            font-size: 18px;
+            color: #7A6A5C;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .honeypot {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="fixed-header">
+        Você já pensou no que vai ficar quando você não estiver mais aqui? Não bens — as histórias, as memórias, a sua voz. Esse espaço foi criado para quem quer preservar isso enquanto ainda há tempo.
+    </div>
+    
+    <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <input type="text" id="hp_field" class="honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+    <div id="main-content">
+        
+        <!-- ETAPA 0: CADASTRO INICIAL -->
+        <div class="step active" id="step-0">
+            <h2>Antes de começarmos, como podemos te chamar?</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <label class="input-label">Seu primeiro nome:</label>
+                <input type="text" id="lead-name" class="input-field" placeholder="Ex: Maria" />
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label class="input-label">Seu WhatsApp (apenas DDD e número):</label>
+                <input type="tel" id="lead-phone" class="input-field" placeholder="(11) 99999-9999" oninput="maskWhatsApp(this)" maxlength="15" />
+            </div>
+
+            <p id="step-0-error" style="display:none; color: #D32F2F; margin-bottom: 20px; font-weight: 500; font-size: 18px; text-align: center;"></p>
+
+            <button class="primary-btn" onclick="submitLead()">Acessar espaço</button>
+        </div>
+
+        <!-- ETAPA 1 -->
+        <div class="step" id="step-1">
+            <h2>Você tem filhos ou netos?</h2>
+            <div class="option" onclick="answerStep1('Sim, tenho.')">Sim, tenho.</div>
+            <div class="option" onclick="answerStep1('Não tenho.')">Não tenho.</div>
+        </div>
+
+        <!-- ETAPA 2 -->
+        <div class="step" id="step-2">
+            <h2>Você tem fotos, cartas ou memórias da sua família que tem medo de perder?</h2>
+            <div class="option" onclick="answerStep2('Sim, tenho muita coisa guardada.')">Sim, tenho muita coisa guardada.</div>
+            <div class="option" onclick="answerStep2('Já perdi memórias que não voltam mais.')">Já perdi memórias que não voltam mais.</div>
+            <div class="option" onclick="answerStep2('Ainda não pensei nisso mas me preocupa.')">Ainda não pensei nisso mas me preocupa.</div>
+        </div>
+
+        <!-- ETAPA 3 -->
+        <div class="step" id="step-3">
+            <h2>O que você mais gostaria de deixar registrado para seus filhos e netos?</h2>
+            <div class="option" onclick="answerStep3('Minha história de vida contada por mim.')">Minha história de vida contada por mim.</div>
+            <div class="option" onclick="answerStep3('As fotos e memórias organizadas da nossa família.')">As fotos e memórias organizadas da nossa família.</div>
+            <div class="option" onclick="answerStep3('As histórias dos meus pais e avós que só eu ainda sei.')">As histórias dos meus pais e avós que só eu ainda sei.</div>
+            <div class="option" onclick="answerStep3('Tudo isso junto.')">Tudo isso junto.</div>
+        </div>
+
+        <!-- TELA DE ENCERRAMENTO -->
+        <div class="step" id="step-end-negative">
+            <h2>Esse espaço foi criado para quem quer deixar um legado para as próximas gerações. Por enquanto ele não é para você, mas obrigado por estar aqui.</h2>
+        </div>
+
+        <!-- ETAPA 4: DOWNLOAD DO PDF -->
+        <div class="step" id="step-pdf">
+            <p id="pdf-message" class="final-message"></p>
+            
+            <p id="error-message" style="display:none; color: #D32F2F; margin-top: 20px; font-weight: 500; text-align: center;">Algo deu errado. Tente acessar novamente pelo link na descrição do vídeo.</p>
+
+            <div id="pdf-buttons-container" style="display:none;">
+                <p class="pdf-text">Preparei um material gratuito para você começar hoje mesmo. Baixe agora:</p>
+                <p class="pdf-title">Como preservar as memórias da sua família — um guia simples para começar</p>
+                <button class="primary-btn" onclick="downloadPDFAndContinue()">Baixar o guia gratuito</button>
+                <p class="small-text">Após o download, você receberá um convite especial.</p>
+            </div>
+        </div>
+
+        <!-- ETAPA 5: CONVITE DO GRUPO (Com copy baseada em senso de perda) -->
+        <div class="step" id="step-group">
+            <p class="final-message message-left">O seu guia já foi disponibilizado. <strong>Mas preciso ser muito honesto com você:</strong></p>
+            <p class="final-message message-left">Apenas guardar um material no celular não salva memórias. O tempo não perdoa, e a cada dia que passa, detalhes preciosos das nossas vidas e das histórias de quem amamos vão se apagando.</p>
+            <p class="final-message message-left">Se você deixar para depois, o risco é real: fotos se estragam, vozes são esquecidas e histórias inteiras da sua família podem desaparecer para sempre, sem deixar absolutamente nada para seus filhos e netos.</p>
+            <p class="final-message message-left">Para garantir que você não perca nada disso, criei um grupo fechado no WhatsApp. Lá dentro, vou te ajudar pessoalmente toda semana a preservar a sua história enquanto ainda há tempo.</p>
+            
+            <button class="primary-btn" style="margin-top: 30px;" onclick="openWhatsApp()">Entrar no grupo e proteger minha história</button>
+            <p class="small-text">O grupo é seguro, respeitoso e gratuito.</p>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+        /* =====================================================================
+         * CONFIGURAÇÃO DO FIREBASE (COLE AQUI OS DADOS DO SEU PROJETO)
+         * ===================================================================== */
+        const firebaseConfig = {
+            apiKey: "COLE_SUA_API_KEY_AQUI",
+            authDomain: "COLE_SEU_AUTH_DOMAIN_AQUI",
+            projectId: "COLE_SEU_PROJECT_ID_AQUI",
+            storageBucket: "COLE_SEU_STORAGE_BUCKET_AQUI",
+            messagingSenderId: "COLE_SEU_MESSAGING_SENDER_ID_AQUI",
+            appId: "COLE_SEU_APP_ID_AQUI"
+        };
+
+        let app, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Firebase inicializado!");
+        } catch (e) {
+            console.error("Erro ao inicializar Firebase. Verifique se colou as chaves corretamente.", e);
+        }
+
+        /* =====================================================================
+         * VARIÁVEIS GLOBAIS - FÁCEIS DE SUBSTITUIR
+         * ===================================================================== */
+        const LINK_GRUPO_WHATSAPP = "https://chat.whatsapp.com/CcZoBQVULEvCbb7ljufVE2";
+        const LINK_WHATSAPP_PESSOAL = "https://wa.me/5531999990762";
+        const PDF_URL = "https://drive.google.com/uc?export=download&id=13N8zz-29sh3moiMcrHvetRd-0wYusHBw";
+        
+        let currentLead = {
+            name: "",
+            phone: "",
+            perfil_emocional: "",
+            perfil_pagante: "",
+            classificacao: "",
+            timestamp: "",
+            pdf_downloaded: false,
+            group_clicked: false,
+            duplicated_attempts: 0
+        };
+        
+        let currentDocId = null; // Guarda a ID do documento no Firebase para atualizar as respostas
+
+        /* =====================================================================
+         * BANCO DE DADOS - FIREBASE
+         * ===================================================================== */
+        async function saveOrUpdateLeadToFirebase() {
+            if (!db) return; // Se Firebase não estiver configurado, ignora
+            try {
+                if (!currentDocId) {
+                    // Cria novo documento
+                    const docRef = await addDoc(collection(db, "leads"), currentLead);
+                    currentDocId = docRef.id;
+                } else {
+                    // Atualiza o documento existente com as novas respostas
+                    const leadRef = doc(db, "leads", currentDocId);
+                    await updateDoc(leadRef, currentLead);
+                }
+            } catch (error) {
+                console.error("Erro ao salvar no banco de dados:", error);
+            }
+        }
+
+        async function checkDuplicatedAttemptFirebase(rawNumber) {
+            if (!db) return false;
+            try {
+                const q = query(collection(db, "leads"), where("phone", "==", rawNumber));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    // Existe! Vamos atualizar o contador de duplicatas no primeiro documento encontrado
+                    const existingDoc = querySnapshot.docs[0];
+                    const data = existingDoc.data();
+                    const newAttempts = (data.duplicated_attempts || 0) + 1;
+                    await updateDoc(doc(db, "leads", existingDoc.id), {
+                        duplicated_attempts: newAttempts
+                    });
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error("Erro ao verificar duplicidade:", error);
+                return false;
+            }
+        }
+
+        /* =====================================================================
+         * LÓGICA DE CAPTURA E VALIDAÇÃO (PASSO 0)
+         * ===================================================================== */
+        window.maskWhatsApp = function(input) {
+            let v = input.value.replace(/\D/g, "");
+            if (v.length > 11) v = v.slice(0, 11);
+            
+            if (v.length > 2) {
+                v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
+            }
+            if (v.length > 9) {
+                v = v.replace(/(\d{5})(\d)/, "$1-$2");
+            }
+            input.value = v;
+        };
+
+        window.submitLead = async function() {
+            const name = document.getElementById("lead-name").value.trim();
+            const phoneInput = document.getElementById("lead-phone");
+            const rawNumber = phoneInput.value.replace(/\D/g, "");
+            const errorEl = document.getElementById("step-0-error");
+            
+            if (name.length < 2) {
+                errorEl.innerText = "Por favor, insira o seu nome.";
+                errorEl.style.display = "block";
+                return;
+            }
+
+            if (rawNumber.length !== 11) {
+                errorEl.innerText = "Número incompleto. Formato: (DDD) 9XXXX-XXXX.";
+                errorEl.style.display = "block";
+                return;
+            }
+
+            if (rawNumber[2] !== "9") {
+                errorEl.innerText = "O número deve começar com o dígito 9 após o DDD.";
+                errorEl.style.display = "block";
+                return;
+            }
+
+            const ddd = parseInt(rawNumber.substring(0, 2));
+            const invalidDDDs = [10, 20, 26, 29, 30, 36, 39, 40, 50, 56, 57, 58, 59, 60, 70, 72, 76, 78, 80, 90];
+            if (ddd < 11 || invalidDDDs.includes(ddd)) {
+                errorEl.innerText = "O DDD inserido não é válido no Brasil.";
+                errorEl.style.display = "block";
+                return;
+            }
+
+            // Desabilita o botão para evitar cliques duplos
+            const btn = document.querySelector("#step-0 .primary-btn");
+            btn.innerText = "Acessando...";
+            btn.disabled = true;
+
+            // Checa duplicidade no Firebase
+            const isDuplicated = await checkDuplicatedAttemptFirebase(rawNumber);
+            if (isDuplicated) {
+                errorEl.innerText = "Este número já recebeu o material. Uma tentativa só é permitida por número.";
+                errorEl.style.display = "block";
+                btn.innerText = "Acessar espaço";
+                btn.disabled = false;
+                return;
+            }
+
+            // Se for aprovado
+            currentLead.name = name;
+            currentLead.phone = rawNumber;
+            currentLead.timestamp = new Date().toISOString();
+            
+            await saveOrUpdateLeadToFirebase();
+            
+            errorEl.style.display = "none";
+            document.getElementById("progress-bar-container").style.display = "block";
+            updateProgress(1);
+            showStep("step-1");
+            
+            btn.innerText = "Acessar espaço";
+            btn.disabled = false;
+        };
+
+        /* =====================================================================
+         * LÓGICA DE NAVEGAÇÃO, PROGRESSO E ANTIBOT
+         * ===================================================================== */
+        let humanEvents = 0;
+        let honeypotFilled = false;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const hpField = document.getElementById("hp_field");
+            if (hpField) {
+                hpField.addEventListener("input", () => {
+                    honeypotFilled = true;
+                });
+            }
+
+            const events = ["touchstart", "click", "scroll", "keydown"];
+            events.forEach(evt => {
+                window.addEventListener(evt, () => {
+                    humanEvents++;
+                }, { passive: true });
+            });
+        });
+
+        function updateProgress(stepNumber) {
+            const progressBar = document.getElementById("progress-bar");
+            if (stepNumber === 1) progressBar.style.width = "25%";
+            else if (stepNumber === 2) progressBar.style.width = "50%";
+            else if (stepNumber === 3) progressBar.style.width = "75%";
+            else if (stepNumber === 4) progressBar.style.width = "100%";
+        }
+
+        function showStep(stepId) {
+            document.querySelectorAll(".step").forEach(el => el.classList.remove("active"));
+            document.getElementById(stepId).classList.add("active");
+            window.scrollTo(0, 0); 
+        }
+
+        window.answerStep1 = async function(answer) {
+            if (answer === 'Não tenho.') {
+                showStep("step-end-negative");
+                document.getElementById("progress-bar-container").style.display = "none";
+            } else {
+                updateProgress(2);
+                showStep("step-2");
+            }
+        };
+
+        window.answerStep2 = async function(answer) {
+            currentLead.perfil_emocional = answer; 
+            updateProgress(3);
+            showStep("step-3");
+            saveOrUpdateLeadToFirebase(); // Salva estado intermediário sem bloquear a tela
+        };
+
+        window.answerStep3 = async function(answer) {
+            currentLead.perfil_pagante = answer; 
+            
+            if (answer === "Tudo isso junto.") {
+                currentLead.classificacao = "QUENTE";
+            } else {
+                currentLead.classificacao = "MORNO";
+            }
+            
+            updateProgress(4);
+            renderPDFScreen();
+            saveOrUpdateLeadToFirebase();
+        };
+
+        /* =====================================================================
+         * TELA DO PDF E VERIFICAÇÕES DE ROBÔ
+         * ===================================================================== */
+        function renderPDFScreen() {
+            showStep("step-pdf");
+            
+            const pdfMsgEl = document.getElementById("pdf-message");
+            if (currentLead.classificacao === "QUENTE") {
+                pdfMsgEl.innerText = currentLead.name + ", você está no lugar certo. Preparei um material gratuito para pessoas como você, que entendem o valor do que carregam.";
+            } else {
+                pdfMsgEl.innerText = currentLead.name + ", fico feliz que chegou até aqui. O primeiro passo para preservar a história da sua família é entender o valor das memórias.";
+            }
+
+            if (honeypotFilled) return;
+            if (humanEvents === 0) {
+                document.getElementById("error-message").style.display = "block";
+                return;
+            }
+
+            document.getElementById("pdf-buttons-container").style.display = "block";
+        }
+
+        /* =====================================================================
+         * AÇÕES DE DOWNLOAD E CONVITE FINAL
+         * ===================================================================== */
+        function forceDownload(url) {
+            let iframe = document.getElementById("hiddenDownloader");
+            if (!iframe) {
+                iframe = document.createElement("iframe");
+                iframe.id = "hiddenDownloader";
+                iframe.style.display = "none";
+                document.body.appendChild(iframe);
+            }
+            iframe.src = url;
+        }
+
+        window.downloadPDFAndContinue = async function() {
+            forceDownload(PDF_URL);
+            currentLead.pdf_downloaded = true;
+            saveOrUpdateLeadToFirebase();
+            showStep("step-group");
+        };
+
+        window.openWhatsApp = async function() {
+            currentLead.group_clicked = true;
+            await saveOrUpdateLeadToFirebase();
+            window.open(LINK_GRUPO_WHATSAPP, "_blank");
+        };
+    </script>
+</body>
+</html>
