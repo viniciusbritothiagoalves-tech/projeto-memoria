@@ -277,6 +277,15 @@
             <div class="option" onclick="answerStep1('Não tenho.')">Não tenho.</div>
         </div>
 
+        <!-- ETAPA 1B: PERGUNTA ESTRATÉGICA PARA QUEM NÃO TEM FILHOS -->
+        <div class="step" id="step-1b">
+            <h2>Entendo. E o que te trouxe aqui hoje?</h2>
+            <div class="option" onclick="answerStep1b('Quero preservar as memórias dos meus pais/avós.')">Quero preservar as memórias dos meus pais/avós.</div>
+            <div class="option" onclick="answerStep1b('Tenho fotos e cartas antigas que não quero perder.')">Tenho fotos e cartas antigas que não quero perder.</div>
+            <div class="option" onclick="answerStep1b('Nunca pensei nisso, só vim curioso.')">Nunca pensei nisso, só vim curioso.</div>
+            <div class="option" onclick="answerStep1b('Outro motivo.')">Outro motivo.</div>
+        </div>
+
         <!-- ETAPA 2 -->
         <div class="step" id="step-2">
             <h2>Você tem fotos, cartas ou memórias da sua família que tem medo de perder?</h2>
@@ -557,7 +566,8 @@
             currentLead.idade = answer;
             if (answer === 'Menos de 35 anos') {
                 currentLead.classificacao = "REJEITADO";
-                localStorage.setItem('funnel_blocked', 'true'); // Marca o dispositivo
+                currentLead.motivo_bloqueio = "idade_menor_35";
+                localStorage.setItem('funnel_blocked', 'true');
                 showStep("step-end-negative");
                 document.getElementById("progress-bar-container").style.display = "none";
             } else {
@@ -570,12 +580,32 @@
         window.answerStep1 = async function(answer) {
             currentLead.tem_filhos = answer;
             if (answer === 'Não tenho.') {
+                updateProgress(3);
+                showStep("step-1b");
+            } else {
+                updateProgress(2);
+                showStep("step-2");
+            }
+            saveOrUpdateLeadToFirebase();
+        };
+
+        window.answerStep1b = async function(answer) {
+            currentLead.perfil_sem_filhos = answer;
+            
+            if (answer === 'Nunca pensei nisso, só vim curioso.') {
                 currentLead.classificacao = "REJEITADO";
-                localStorage.setItem('funnel_blocked', 'true'); // Marca o dispositivo
+                currentLead.motivo_bloqueio = "curioso_sem_filhos";
+                localStorage.setItem('funnel_blocked', 'true');
+                showStep("step-end-negative");
+                document.getElementById("progress-bar-container").style.display = "none";
+            } else if (answer === 'Outro motivo.') {
+                currentLead.classificacao = "REJEITADO";
+                currentLead.motivo_bloqueio = "outro_motivo_sem_filhos";
+                localStorage.setItem('funnel_blocked', 'true');
                 showStep("step-end-negative");
                 document.getElementById("progress-bar-container").style.display = "none";
             } else {
-                updateProgress(3);
+                updateProgress(4);
                 showStep("step-2");
             }
             saveOrUpdateLeadToFirebase();
@@ -583,9 +613,9 @@
 
         window.answerStep2 = async function(answer) {
             currentLead.perfil_emocional = answer; 
-            updateProgress(4);
+            updateProgress(5);
             showStep("step-3");
-            saveOrUpdateLeadToFirebase(); // Salva estado intermediário sem bloquear a tela
+            saveOrUpdateLeadToFirebase();
         };
 
         window.answerStep3 = async function(answer) {
