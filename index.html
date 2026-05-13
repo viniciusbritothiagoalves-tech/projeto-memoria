@@ -207,10 +207,55 @@
 
     <!-- BARREIRAS DE SEGURANÇA E ANTICÓPIA -->
     <script>
+        // Função para gerar fingerprint único do navegador
+        function getBrowserFingerprint() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = "top";
+            ctx.font = "14px Arial";
+            ctx.fillText("Fingerprint Test", 2, 2);
+            ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+            ctx.fillRect(1, 1, 10, 10);
+            
+            const canvasData = canvas.toDataURL();
+            
+            let fingerprint = '';
+            fingerprint += navigator.userAgent;
+            fingerprint += navigator.language;
+            fingerprint += screen.colorDepth;
+            fingerprint += screen.width + 'x' + screen.height;
+            fingerprint += new Date().getTimezoneOffset();
+            fingerprint += canvasData.slice(20, 50);
+            
+            let hash = 0;
+            for (let i = 0; i < fingerprint.length; i++) {
+                const char = fingerprint.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return 'fp_' + Math.abs(hash).toString(16);
+        }
+
+        // Debug: mostra status do sistema de bloqueio
+        if (window.location.search.includes('?debug=sim')) {
+            console.log('=== DEBUG - FUNIL SEGURANÇA ===');
+            console.log('LocalStorage blocked:', localStorage.getItem('funnel_blocked'));
+            console.log('Fingerprint:', localStorage.getItem('funnel_fingerprint'));
+            console.log('===========================');
+        }
+
         // 0. Backdoor para o dono testar a página e remover bloqueios
         if (window.location.search.includes('modo_teste=sim')) {
             localStorage.removeItem('funnel_blocked');
+            localStorage.removeItem('funnel_fingerprint');
         } else if (localStorage.getItem('funnel_blocked') === 'true') {
+            document.documentElement.innerHTML = "<body style='background-color:#F4EFE6; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#4A3C31;'><h2 style='text-align:center; padding:20px;'>Acesso Indisponível</h2></body>";
+            window.stop();
+        }
+
+        // Simular bloqueio para teste (apenas em modo debug)
+        if (window.location.search.includes('simular_bloqueio=idade')) {
+            localStorage.setItem('funnel_blocked', 'true');
             document.documentElement.innerHTML = "<body style='background-color:#F4EFE6; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#4A3C31;'><h2 style='text-align:center; padding:20px;'>Acesso Indisponível</h2></body>";
             window.stop();
         }
@@ -379,8 +424,56 @@
             timestamp: "",
             pdf_downloaded: false,
             group_clicked: false,
-            duplicated_attempts: 0
+            duplicated_attempts: 0,
+            fingerprint: ""
         };
+
+        // Gera e verifica fingerprint ao iniciar
+        let currentFingerprint = getBrowserFingerprint();
+        localStorage.setItem('funnel_fingerprint', currentFingerprint);
+        currentLead.fingerprint = currentFingerprint;
+
+        // Verifica se fingerprint está bloqueado no Firebase
+        async function checkFingerprintBlocked() {
+            if (!db) return false;
+            try {
+                const q = query(collection(db, "fingerprint_bloqueados"), where("fingerprint", "==", currentFingerprint));
+                const querySnapshot = await getDocs(q);
+                return !querySnapshot.empty;
+            } catch (e) {
+                console.error("Erro ao verificar fingerprint:", e);
+                return false;
+            }
+        }
+
+        // Salva fingerprint na lista de bloqueados
+        async function blockFingerprint(reason) {
+            if (!db) return;
+            try {
+                await addDoc(collection(db, "fingerprint_bloqueados"), {
+                    fingerprint: currentFingerprint,
+                    motivo: reason,
+                    timestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent
+                });
+            } catch (e) {
+                console.error("Erro ao bloquear fingerprint:", e);
+            }
+        }
+
+        // Verifica inicialmente se está bloqueado (modo síncrono para evitar flashing)
+        if (!window.location.search.includes('modo_teste=sim')) {
+            const localBlocked = localStorage.getItem('funnel_blocked') === 'true';
+            if (!localBlocked && db) {
+                checkFingerprintBlocked().then(isBlocked => {
+                    if (isBlocked) {
+                        localStorage.setItem('funnel_blocked', 'true');
+                        document.documentElement.innerHTML = "<body style='background-color:#F4EFE6; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#4A3C31;'><h2 style='text-align:center; padding:20px;'>Acesso Indisponível</h2></body>";
+                        window.stop();
+                    }
+                });
+            }
+        }
         
         let currentDocId = null; // Guarda a ID do documento no Firebase para atualizar as respostas
 
@@ -568,6 +661,7 @@
                 currentLead.classificacao = "REJEITADO";
                 currentLead.motivo_bloqueio = "idade_menor_35";
                 localStorage.setItem('funnel_blocked', 'true');
+                blockFingerprint("idade_menor_35");
                 showStep("step-end-negative");
                 document.getElementById("progress-bar-container").style.display = "none";
             } else {
@@ -596,12 +690,14 @@
                 currentLead.classificacao = "REJEITADO";
                 currentLead.motivo_bloqueio = "curioso_sem_filhos";
                 localStorage.setItem('funnel_blocked', 'true');
+                blockFingerprint("curioso_sem_filhos");
                 showStep("step-end-negative");
                 document.getElementById("progress-bar-container").style.display = "none";
             } else if (answer === 'Outro motivo.') {
                 currentLead.classificacao = "REJEITADO";
                 currentLead.motivo_bloqueio = "outro_motivo_sem_filhos";
                 localStorage.setItem('funnel_blocked', 'true');
+                blockFingerprint("outro_motivo_sem_filhos");
                 showStep("step-end-negative");
                 document.getElementById("progress-bar-container").style.display = "none";
             } else {
